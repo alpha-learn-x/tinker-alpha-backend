@@ -3,6 +3,8 @@ const jwt = require('jsonwebtoken');
 const User = require('../schemas/UserSchema');
 const { validationResult } = require('express-validator');
 const ENUMS = require('../enums/UserRole');
+const QuizResult = require('../schemas/QuizResultsSchema');
+
 
 const initializeTeacher = async () => {
     try {
@@ -123,6 +125,39 @@ const login = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+const getAllStudents = async (req, res) => {
+    try {
+        const students = await User.find({ role: ENUMS.ROLES.STUDENT }).lean();
 
+        const enrichedStudents = await Promise.all(
+            students.map(async (student) => {
+                const quizResults = await QuizResult.find({ user: student._id }).sort({ date: -1 }).lean();
 
-module.exports = { register, login, initializeTeacher };
+                return {
+                    id: student._id,
+                    userId: student.id,
+                    email: student.email,
+                    userName: student.userName,
+                    age: student.age,
+                    quizResults: quizResults.map(q => ({
+                        quizName: q.quizName,
+                        totalMarks: q.totalMarks,
+                        date: q.date
+                    }))
+                };
+            })
+        );
+
+        res.status(200).json({
+            message: 'Students with quiz results retrieved successfully',
+            students: enrichedStudents
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: 'Server error while retrieving students',
+            error: error.message
+        });
+    }
+};
+
+module.exports = { register, login, initializeTeacher, getAllStudents };
