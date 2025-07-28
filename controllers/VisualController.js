@@ -1,6 +1,6 @@
 const VisualQuiz = require('../schemas/VisualSchema');
 
-// Get all quiz questions
+// Get all quiz tasks
 exports.getQuizQuestions = async (req, res) => {
   try {
     const quiz = await VisualQuiz.findOne({ quizName: 'VISUAL' });
@@ -13,32 +13,26 @@ exports.getQuizQuestions = async (req, res) => {
   }
 };
 
-// Save quiz questions
+// Save quiz tasks
 exports.saveQuizQuestions = async (req, res) => {
   try {
-    const { quizName, questions, youtubeUrl } = req.body;
-    
-    // Validate input
-    if (!quizName || !questions || !youtubeUrl) {
-      return res.status(400).json({ message: 'Missing required fields' });
+    const { quizName, tasks } = req.body;
+
+    if (!quizName || !tasks || !Array.isArray(tasks)) {
+      return res.status(400).json({ message: 'Missing or invalid required fields' });
     }
 
-    // Check if quiz already exists
     let quiz = await VisualQuiz.findOne({ quizName });
-    
+
     if (quiz) {
-      // Update existing quiz
-      quiz.questions = questions;
-      quiz.youtubeUrl = youtubeUrl;
+      quiz.tasks = tasks;
       await quiz.save();
       return res.json({ message: 'Quiz updated successfully', quiz });
     }
 
-    // Create new quiz
     quiz = new VisualQuiz({
       quizName,
-      questions,
-      youtubeUrl
+      tasks
     });
 
     await quiz.save();
@@ -52,14 +46,11 @@ exports.saveQuizQuestions = async (req, res) => {
 exports.saveQuizResults = async (req, res) => {
   try {
     const { quizName, user, userId, username, email, totalMarks, date } = req.body;
-    
-    // Validate input
+
     if (!quizName || !user || !userId || !username || !email || totalMarks === undefined) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
-    // In a real implementation, you might want to save results to a separate collection
-    // For this example, we'll just return a success message
     res.json({
       message: 'Quiz results saved successfully',
       result: { quizName, user, userId, username, email, totalMarks, date }

@@ -10,7 +10,7 @@ const quizResultSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-     quizName: {
+    quizName: {
         type: String,
         required: true
     },
@@ -26,6 +26,24 @@ const quizResultSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    totalTime: {
+        type: Number, // Time in seconds
+        required: false // Optional for backward compatibility
+    },
+    taskResults: [{
+        taskId: {
+            type: Number,
+            required: false
+        },
+        timeTaken: {
+            type: Number, // Time in seconds for this specific task
+            required: false
+        },
+        marks: {
+            type: Number,
+            required: false
+        }
+    }],
     date: {
         type: Date,
         default: Date.now
