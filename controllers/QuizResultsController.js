@@ -3,27 +3,27 @@ const User = require('../schemas/UserSchema');
 
 exports.saveQuizResults = async (req, res) => {
     try {
-        const { 
-            user, 
-            userId, 
-            username, 
-            email, 
-            totalMarks, 
-            totalTime, 
-            taskResults, 
-            date, 
-            quizName 
+        const {
+            user,
+            userId,
+            username,
+            email,
+            totalMarks,
+            totalTime,
+            taskResults,
+            date,
+            quizName
         } = req.body;
 
         // Validate required fields
         if (!user || !userId || !username || !email || !quizName || totalMarks === undefined) {
-            console.log('Missing required fields:', { 
-                user: !!user, 
-                userId: !!userId, 
-                username: !!username, 
-                email: !!email, 
-                totalMarks: totalMarks !== undefined, 
-                quizName: !!quizName 
+            console.log('Missing required fields:', {
+                user: !!user,
+                userId: !!userId,
+                username: !!username,
+                email: !!email,
+                totalMarks: totalMarks !== undefined,
+                quizName: !!quizName
             });
             return res.status(400).json({ message: 'All required fields must be provided' });
         }
@@ -46,12 +46,12 @@ exports.saveQuizResults = async (req, res) => {
         if (taskResults && Array.isArray(taskResults)) {
             for (let i = 0; i < taskResults.length; i++) {
                 const task = taskResults[i];
-                if (typeof task.taskId !== 'number' || 
-                    typeof task.timeTaken !== 'number' || 
+                if (typeof task.taskId !== 'number' ||
+                    typeof task.timeTaken !== 'number' ||
                     typeof task.marks !== 'number') {
                     console.log('Invalid task result format at index:', i, task);
-                    return res.status(400).json({ 
-                        message: `Invalid task result format at index ${i}. Expected taskId, timeTaken, and marks as numbers.` 
+                    return res.status(400).json({
+                        message: `Invalid task result format at index ${i}. Expected taskId, timeTaken, and marks as numbers.`
                     });
                 }
             }
@@ -89,15 +89,15 @@ exports.saveQuizResults = async (req, res) => {
             taskCount: savedResult.taskResults ? savedResult.taskResults.length : 0
         });
 
-        res.status(201).json({ 
-            message: 'Quiz results saved successfully', 
-            data: savedResult 
+        res.status(201).json({
+            message: 'Quiz results saved successfully',
+            data: savedResult
         });
     } catch (error) {
         console.error('Error saving quiz results:', error);
-        res.status(500).json({ 
-            message: 'Server error while saving quiz results', 
-            error: error.message 
+        res.status(500).json({
+            message: 'Server error while saving quiz results',
+            error: error.message
         });
     }
 };
@@ -108,7 +108,7 @@ exports.getAllQuizResults = async (req, res) => {
 
         // Build query object
         const query = {};
-        
+
         if (searchText) {
             query.username = { $regex: searchText, $options: 'i' }; // Case-insensitive search
         }
@@ -135,9 +135,9 @@ exports.getAllQuizResults = async (req, res) => {
         });
     } catch (error) {
         console.error('Error retrieving quiz results:', error);
-        res.status(500).json({ 
-            message: 'Server error while retrieving quiz results', 
-            error: error.message 
+        res.status(500).json({
+            message: 'Server error while retrieving quiz results',
+            error: error.message
         });
     }
 };
@@ -153,7 +153,7 @@ exports.getQuizResultsByUser = async (req, res) => {
 
         // Build query object
         const query = { userId };
-        
+
         if (quizName) {
             query.quizName = { $regex: quizName, $options: 'i' };
         }
@@ -170,9 +170,9 @@ exports.getQuizResultsByUser = async (req, res) => {
         });
     } catch (error) {
         console.error('Error retrieving user quiz results:', error);
-        res.status(500).json({ 
-            message: 'Server error while retrieving user quiz results', 
-            error: error.message 
+        res.status(500).json({
+            message: 'Server error while retrieving user quiz results',
+            error: error.message
         });
     }
 };
@@ -180,7 +180,7 @@ exports.getQuizResultsByUser = async (req, res) => {
 exports.getQuizStats = async (req, res) => {
     try {
         const { quizName } = req.query;
-        
+
         const matchStage = quizName ? { quizName: { $regex: quizName, $options: 'i' } } : {};
 
         const stats = await QuizResult.aggregate([
@@ -217,9 +217,310 @@ exports.getQuizStats = async (req, res) => {
         });
     } catch (error) {
         console.error('Error retrieving quiz statistics:', error);
-        res.status(500).json({ 
-            message: 'Server error while retrieving quiz statistics', 
-            error: error.message 
+        res.status(500).json({
+            message: 'Server error while retrieving quiz statistics',
+            error: error.message
+        });
+    }
+};
+
+exports.getStudentQuizTotals = async (req, res) => {
+    try {
+        // Define the quiz types to filter
+        const quizTypes = ['KINESTHETIC', 'AUDITORY', 'READWRITE', 'VISUAL'];
+
+        // Fetch all students (non-teachers) from the User collection
+        const students = await User.find({ role: { $ne: 'TEACHER' } }, '_id userId username').lean();
+        if (!students || students.length === 0) {
+            console.log('No students found');
+            return res.status(404).json({ message: 'No students found' });
+        }
+
+        // Aggregate quiz results for students and specified quiz types
+        const quizTotals = await QuizResult.aggregate([
+            {
+                // Filter by quiz types
+                $match: {
+                    quizName: { $in: quizTypes },
+                    user: { $in: students.map(student => student._id) }
+                }
+            },
+            {
+                // Group by userId, username, and quizName to sum totalMarks
+                $group: {
+                    _id: {
+                        userId: '$userId',
+                        username: '$username',
+                        quizName: '$quizName'
+                    },
+                    totalMarks: { $sum: '$totalMarks' }
+                }
+            },
+            {
+                // Pivot the data to create fields for each quiz type
+                $group: {
+                    _id: {
+                        userId: '$_id.userId',
+                        username: '$_id.username'
+                    },
+                    marks: {
+                        $push: {
+                            k: '$_id.quizName',
+                            v: '$totalMarks'
+                        }
+                    }
+                }
+            },
+            {
+                // Transform the marks array into an object with quiz type fields
+                $project: {
+                    userId: '$_id.userId',
+                    username: '$_id.username',
+                    KINESTHETIC: {
+                        $cond: [
+                            { $in: ['KINESTHETIC', '$marks.k'] },
+                            { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'KINESTHETIC'] }] },
+                            0
+                        ]
+                    },
+                    AUDITORY: {
+                        $cond: [
+                            { $in: ['AUDITORY', '$marks.k'] },
+                            { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'AUDITORY'] }] },
+                            0
+                        ]
+                    },
+                    READWRITE: {
+                        $cond: [
+                            { $in: ['READWRITE', '$marks.k'] },
+                            { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'READWRITE'] }] },
+                            0
+                        ]
+                    },
+                    VISUAL: {
+                        $cond: [
+                            { $in: ['VISUAL', '$marks.k'] },
+                            { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'VISUAL'] }] },
+                            0
+                        ]
+                    },
+                    _id: 0
+                }
+            },
+            { $sort: { username: 1 } } // Sort by username for consistent output
+        ]);
+
+        console.log(`Found quiz totals for ${quizTotals.length} students`);
+        res.status(200).json({
+            message: 'Student quiz totals retrieved successfully',
+            data: quizTotals,
+            count: quizTotals.length
+        });
+    } catch (error) {
+        console.error('Error retrieving student quiz totals:', error);
+        res.status(500).json({
+            message: 'Server error while retrieving student quiz totals',
+            error: error.message
+        });
+    }
+};
+
+// Define total possible marks for each quiz type (adjust based on your quiz configuration)
+const TOTAL_POSSIBLE_MARKS = {
+    KINESTHETIC: 100, // e.g., 10 questions * 10 marks each
+    AUDITORY: 100,
+    READWRITE: 100,
+    VISUAL: 100
+};
+
+exports.getLoggedInUserQuizTotals = async (req, res) => {
+    try {
+        // Check if user is authenticated
+        if (!req.user || !req.user._id) {
+            console.log('No authenticated user found');
+            return res.status(401).json({ message: 'Authentication required' });
+        }
+
+        const userId = req.user._id; // MongoDB ObjectId from authentication
+
+        // Fetch user details to validate and get username
+        const user = await User.findById(userId).select('userId username role').lean();
+        if (!user) {
+            console.log('User not found:', userId);
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Ensure user is not a teacher (assuming students are USER or STUDENT)
+        if (user.role === 'TEACHER') {
+            console.log('User is a teacher:', userId);
+            return res.status(403).json({ message: 'This endpoint is for students only' });
+        }
+
+        // Define the quiz types to filter
+        const quizTypes = ['KINESTHETIC', 'AUDITORY', 'READWRITE', 'VISUAL'];
+
+        // Aggregate quiz results for the logged-in user
+        const quizTotals = await QuizResult.aggregate([
+            {
+                // Filter by user and quiz types
+                $match: {
+                    user: user._id,
+                    quizName: { $in: quizTypes }
+                }
+            },
+            {
+                // Group by quizName to sum totalMarks
+                $group: {
+                    _id: '$quizName',
+                    totalMarks: { $sum: '$totalMarks' }
+                }
+            },
+            {
+                // Transform into an array of key-value pairs
+                $group: {
+                    _id: null,
+                    marks: {
+                        $push: {
+                            k: '$_id',
+                            v: '$totalMarks'
+                        }
+                    }
+                }
+            },
+            {
+                // Project the final object with quiz type fields and percentages
+                $project: {
+                    userId: user.userId,
+                    username: user.username,
+                    KINESTHETIC: {
+                        totalMarks: {
+                            $cond: [
+                                { $in: ['KINESTHETIC', '$marks.k'] },
+                                { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'KINESTHETIC'] }] },
+                                0
+                            ]
+                        },
+                        percentage: {
+                            $cond: [
+                                { $in: ['KINESTHETIC', '$marks.k'] },
+                                {
+                                    $multiply: [
+                                        {
+                                            $divide: [
+                                                { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'KINESTHETIC'] }] },
+                                                TOTAL_POSSIBLE_MARKS.KINESTHETIC
+                                            ]
+                                        },
+                                        100
+                                    ]
+                                },
+                                0
+                            ]
+                        }
+                    },
+                    AUDITORY: {
+                        totalMarks: {
+                            $cond: [
+                                { $in: ['AUDITORY', '$marks.k'] },
+                                { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'AUDITORY'] }] },
+                                0
+                            ]
+                        },
+                        percentage: {
+                            $cond: [
+                                { $in: ['AUDITORY', '$marks.k'] },
+                                {
+                                    $multiply: [
+                                        {
+                                            $divide: [
+                                                { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'AUDITORY'] }] },
+                                                TOTAL_POSSIBLE_MARKS.AUDITORY
+                                            ]
+                                        },
+                                        100
+                                    ]
+                                },
+                                0
+                            ]
+                        }
+                    },
+                    READWRITE: {
+                        totalMarks: {
+                            $cond: [
+                                { $in: ['READWRITE', '$marks.k'] },
+                                { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'READWRITE'] }] },
+                                0
+                            ]
+                        },
+                        percentage: {
+                            $cond: [
+                                { $in: ['READWRITE', '$marks.k'] },
+                                {
+                                    $multiply: [
+                                        {
+                                            $divide: [
+                                                { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'READWRITE'] }] },
+                                                TOTAL_POSSIBLE_MARKS.READWRITE
+                                            ]
+                                        },
+                                        100
+                                    ]
+                                },
+                                0
+                            ]
+                        }
+                    },
+                    VISUAL: {
+                        totalMarks: {
+                            $cond: [
+                                { $in: ['VISUAL', '$marks.k'] },
+                                { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'VISUAL'] }] },
+                                0
+                            ]
+                        },
+                        percentage: {
+                            $cond: [
+                                { $in: ['VISUAL', '$marks.k'] },
+                                {
+                                    $multiply: [
+                                        {
+                                            $divide: [
+                                                { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'VISUAL'] }] },
+                                                TOTAL_POSSIBLE_MARKS.VISUAL
+                                            ]
+                                        },
+                                        100
+                                    ]
+                                },
+                                0
+                            ]
+                        }
+                    },
+                    _id: 0
+                }
+            }
+        ]);
+
+        // If no results, return default object with zero marks and percentages
+        const result = quizTotals.length > 0 ? quizTotals[0] : {
+            userId: user.userId,
+            username: user.username,
+            KINESTHETIC: { totalMarks: 0, percentage: 0 },
+            AUDITORY: { totalMarks: 0, percentage: 0 },
+            READWRITE: { totalMarks: 0, percentage: 0 },
+            VISUAL: { totalMarks: 0, percentage: 0 }
+        };
+
+        console.log(`Quiz totals retrieved for user ${user.userId}:`, result);
+        res.status(200).json({
+            message: 'Logged-in user quiz totals retrieved successfully',
+            data: result
+        });
+    } catch (error) {
+        console.error('Error retrieving logged-in user quiz totals:', error);
+        res.status(500).json({
+            message: 'Server error while retrieving logged-in user quiz totals',
+            error: error.message
         });
     }
 };

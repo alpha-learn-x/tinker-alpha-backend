@@ -83,33 +83,46 @@ const register = async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
-
 const login = async (req, res) => {
     try {
+        // Validate request body
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
+            console.log('Validation errors:', errors.array());
             return res.status(400).json({ errors: errors.array() });
         }
 
         const { id, password } = req.body;
 
+        // Find user by id (assuming id is a custom field, not _id)
         const user = await User.findOne({ id });
         if (!user) {
+            console.log('User not found for id:', id);
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-
+        // Verify password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
+            console.log('Password mismatch for user:', id);
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
+        // Ensure JWT_SECRET is defined
+        if (!process.env.JWT_SECRET) {
+            console.error('JWT_SECRET is not defined in environment variables');
+            return res.status(500).json({ message: 'Server configuration error: JWT_SECRET not set' });
+        }
+
+        // Generate JWT with consistent payload
         const token = jwt.sign(
-            { userId: user._id, role: user.role },
-            process.env.JWT_SECRET || 'your_jwt_secret',
+            { _id: user._id, userId: user.id, role: user.role },
+            process.env.JWT_SECRET,
             { expiresIn: '1d' }
         );
+        console.log('Generated Token for user:', id, 'Token:', token);
 
+        // Send response
         res.status(200).json({
             message: 'Login successful',
             token,
@@ -122,9 +135,11 @@ const login = async (req, res) => {
             }
         });
     } catch (error) {
+        console.error('Login error:', error.message);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
 const getAllStudents = async (req, res) => {
     try {
         const students = await User.find({ role: ENUMS.ROLES.STUDENT }).lean();
