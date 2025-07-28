@@ -4,7 +4,7 @@ const ReadWriteQuiz = require('../schemas/ReadAndWriteSchema');
 // Get all read-write quiz questions
 exports.getQuizQuestions = async (req, res) => {
     try {
-        const quiz = await ReadWriteQuiz.findOne({ quizName: 'READWRITE' });
+        const quiz = await ReadWriteQuiz.find({ quizName: 'READWRITE' });
         if (!quiz) {
             return res.status(404).json({ message: 'Read Write quiz not found' });
         }
@@ -14,35 +14,33 @@ exports.getQuizQuestions = async (req, res) => {
     }
 };
 
-// Save read-write quiz questions
 exports.saveQuizQuestions = async (req, res) => {
     try {
         const { quizName, questions } = req.body;
 
-        // Validate input
-        if (!quizName || !questions) {
-            return res.status(400).json({ message: 'Missing required fields' });
+        if (!quizName || !Array.isArray(questions)) {
+            return res.status(400).json({ message: 'Missing or invalid fields' });
         }
 
-        // Check if quiz already exists
-        let quiz = await ReadWriteQuiz.findOne({ quizName });
+        const validatedQuestions = questions.filter(q =>
+            q.id && q.scenario && q.steps?.length === 5 && q.correctOrder?.length === 5
+        );
 
-        if (quiz) {
-            // Update existing quiz
-            quiz.questions = questions;
-            await quiz.save();
-            return res.json({ message: 'Read Write quiz updated successfully', quiz });
+        if (validatedQuestions.length !== questions.length) {
+            return res.status(400).json({ message: 'Some questions are invalid' });
         }
 
-        // Create new quiz
-        quiz = new ReadWriteQuiz({
+        // Always create a new record
+        const quiz = new ReadWriteQuiz({
             quizName,
-            questions
+            questions: validatedQuestions,
+            createdAt: new Date() // Add timestamp if needed
         });
 
         await quiz.save();
-        res.status(201).json({ message: 'Read Write quiz created successfully', quiz });
+        res.status(201).json({ message: 'Read Write quiz saved', quiz });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
