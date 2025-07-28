@@ -13,6 +13,7 @@ const VisualRoutes = require('./routes/VisualRoutes');
 const AuditoryRoutes = require('./routes/AuditoryRoutes');
 const DragAndDropRoutes = require('./routes/DragAndDropRoute');
 const ReadAndWriteRoutes = require('./routes/ReadAndWriteRoutes');
+const KinetheticRoutes = require('./routes/KinestheticRoute');
 const UserController = require('./controllers/UserController');
 
 const app = express();
@@ -48,5 +49,6 @@ app.use('/api/v1/quizzes/visual', VisualRoutes);
 app.use('/api/v1/quizzes/auditory', AuditoryRoutes);
 app.use('/api/v1/quizzes/draganddrop', DragAndDropRoutes);
 app.use('/api/v1/quizzes/readandwrite', ReadAndWriteRoutes);
+app.use('/api/v1/quizzes/kinesthetic', KinetheticRoutes);
 
 module.exports = app;
