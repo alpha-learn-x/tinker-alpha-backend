@@ -3,7 +3,7 @@ const AuditoryQuiz = require('../schemas/AuditorySchema');
 // Get all auditory quiz questions
 exports.getQuizQuestions = async (req, res) => {
   try {
-    const quiz = await AuditoryQuiz.findOne({ quizName: 'AUDITORY' });
+    const quiz = await AuditoryQuiz.find({ quizName: 'AUDITORY' });
     if (!quiz) {
       return res.status(404).json({ message: 'Auditory quiz not found' });
     }
@@ -19,26 +19,15 @@ exports.saveQuizQuestions = async (req, res) => {
     const { quizName, questions, audioUrl } = req.body;
 
     // Validate input
-    if (!quizName || !questions) {
-      return res.status(400).json({ message: 'Missing required fields' });
+    if (!quizName || !questions || !Array.isArray(questions)) {
+      return res.status(400).json({ message: 'Missing or invalid required fields' });
     }
 
-    // Check if quiz already exists
-    let quiz = await AuditoryQuiz.findOne({ quizName });
-
-    if (quiz) {
-      // Update existing quiz
-      quiz.questions = questions;
-      quiz.audioUrl = audioUrl || quiz.audioUrl;
-      await quiz.save();
-      return res.json({ message: 'Auditory quiz updated successfully', quiz });
-    }
-
-    // Create new quiz
-    quiz = new AuditoryQuiz({
+    // Create new quiz record
+    const quiz = new AuditoryQuiz({
       quizName,
       questions,
-      audioUrl
+      audioUrl: audioUrl || ''
     });
 
     await quiz.save();
