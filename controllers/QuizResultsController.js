@@ -325,7 +325,6 @@ exports.getStudentQuizTotals = async (req, res) => {
     }
 };
 
-// Define total possible marks for each quiz type (adjust based on your quiz configuration)
 const TOTAL_POSSIBLE_MARKS = {
     KINESTHETIC: 100, // e.g., 10 questions * 10 marks each
     AUDITORY: 100,
@@ -335,181 +334,95 @@ const TOTAL_POSSIBLE_MARKS = {
 
 exports.getLoggedInUserQuizTotals = async (req, res) => {
     try {
-        // Check if user is authenticated
         if (!req.user || !req.user._id) {
             console.log('No authenticated user found');
             return res.status(401).json({ message: 'Authentication required' });
         }
 
-        const userId = req.user._id; // MongoDB ObjectId from authentication
+        const userId = req.user._id;
 
-        // Fetch user details to validate and get username
-        const user = await User.findById(userId).select('userId username role').lean();
+        const user = await User.findById(userId).lean(); // Get all fields to see what's available
         if (!user) {
             console.log('User not found:', userId);
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // Ensure user is not a teacher (assuming students are USER or STUDENT)
+        // Debug: Check what fields are actually available
+        console.log('Complete User object:', user);
+
         if (user.role === 'TEACHER') {
             console.log('User is a teacher:', userId);
             return res.status(403).json({ message: 'This endpoint is for students only' });
         }
 
-        // Define the quiz types to filter
         const quizTypes = ['KINESTHETIC', 'AUDITORY', 'READWRITE', 'VISUAL'];
 
-        // Aggregate quiz results for the logged-in user
-        const quizTotals = await QuizResult.aggregate([
+        // Get aggregated results for each quiz type
+        const quizResults = await QuizResult.aggregate([
             {
-                // Filter by user and quiz types
                 $match: {
                     user: user._id,
                     quizName: { $in: quizTypes }
                 }
             },
             {
-                // Group by quizName to sum totalMarks
                 $group: {
                     _id: '$quizName',
-                    totalMarks: { $sum: '$totalMarks' }
-                }
-            },
-            {
-                // Transform into an array of key-value pairs
-                $group: {
-                    _id: null,
-                    marks: {
-                        $push: {
-                            k: '$_id',
-                            v: '$totalMarks'
-                        }
-                    }
-                }
-            },
-            {
-                // Project the final object with quiz type fields and percentages
-                $project: {
-                    userId: user.userId,
-                    username: user.username,
-                    KINESTHETIC: {
-                        totalMarks: {
-                            $cond: [
-                                { $in: ['KINESTHETIC', '$marks.k'] },
-                                { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'KINESTHETIC'] }] },
-                                0
-                            ]
-                        },
-                        percentage: {
-                            $cond: [
-                                { $in: ['KINESTHETIC', '$marks.k'] },
-                                {
-                                    $multiply: [
-                                        {
-                                            $divide: [
-                                                { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'KINESTHETIC'] }] },
-                                                TOTAL_POSSIBLE_MARKS.KINESTHETIC
-                                            ]
-                                        },
-                                        100
-                                    ]
-                                },
-                                0
+                    totalMarks: { $sum: '$totalMarks' },
+                    maxMarks: {
+                        $sum: {
+                            $ifNull: [
+                                '$maxMarks',
+                                { $ifNull: ['$totalQuestions', { $ifNull: ['$maxScore', 1] }] }
                             ]
                         }
                     },
-                    AUDITORY: {
-                        totalMarks: {
-                            $cond: [
-                                { $in: ['AUDITORY', '$marks.k'] },
-                                { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'AUDITORY'] }] },
-                                0
-                            ]
-                        },
-                        percentage: {
-                            $cond: [
-                                { $in: ['AUDITORY', '$marks.k'] },
-                                {
-                                    $multiply: [
-                                        {
-                                            $divide: [
-                                                { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'AUDITORY'] }] },
-                                                TOTAL_POSSIBLE_MARKS.AUDITORY
-                                            ]
-                                        },
-                                        100
-                                    ]
-                                },
-                                0
-                            ]
-                        }
-                    },
-                    READWRITE: {
-                        totalMarks: {
-                            $cond: [
-                                { $in: ['READWRITE', '$marks.k'] },
-                                { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'READWRITE'] }] },
-                                0
-                            ]
-                        },
-                        percentage: {
-                            $cond: [
-                                { $in: ['READWRITE', '$marks.k'] },
-                                {
-                                    $multiply: [
-                                        {
-                                            $divide: [
-                                                { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'READWRITE'] }] },
-                                                TOTAL_POSSIBLE_MARKS.READWRITE
-                                            ]
-                                        },
-                                        100
-                                    ]
-                                },
-                                0
-                            ]
-                        }
-                    },
-                    VISUAL: {
-                        totalMarks: {
-                            $cond: [
-                                { $in: ['VISUAL', '$marks.k'] },
-                                { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'VISUAL'] }] },
-                                0
-                            ]
-                        },
-                        percentage: {
-                            $cond: [
-                                { $in: ['VISUAL', '$marks.k'] },
-                                {
-                                    $multiply: [
-                                        {
-                                            $divide: [
-                                                { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'VISUAL'] }] },
-                                                TOTAL_POSSIBLE_MARKS.VISUAL
-                                            ]
-                                        },
-                                        100
-                                    ]
-                                },
-                                0
-                            ]
-                        }
-                    },
-                    _id: 0
+                    questionCount: { $sum: 1 },
+                    // Debug fields
+                    sampleDoc: { $first: '$ROOT' }
                 }
             }
         ]);
 
-        // If no results, return default object with zero marks and percentages
-        const result = quizTotals.length > 0 ? quizTotals[0] : {
-            userId: user.userId,
-            username: user.username,
-            KINESTHETIC: { totalMarks: 0, percentage: 0 },
-            AUDITORY: { totalMarks: 0, percentage: 0 },
-            READWRITE: { totalMarks: 0, percentage: 0 },
-            VISUAL: { totalMarks: 0, percentage: 0 }
+        // Initialize result with default values - fix user field names
+        const result = {
+            userId: user.userId || user._id,
+            username: user.username || user.name || user.firstName || user.email?.split('@')[0] || 'Unknown',
+            KINESTHETIC: { totalMarks: 0, maxMarks: 0, questionCount: 0, percentage: 0 },
+            AUDITORY: { totalMarks: 0, maxMarks: 0, questionCount: 0, percentage: 0 },
+            READWRITE: { totalMarks: 0, maxMarks: 0, questionCount: 0, percentage: 0 },
+            VISUAL: { totalMarks: 0, maxMarks: 0, questionCount: 0, percentage: 0 }
         };
+
+        console.log('Quiz aggregation results:', quizResults);
+
+        // Process each quiz type result
+        quizResults.forEach(quiz => {
+            console.log(`Sample document for ${quiz._id}:`, quiz.sampleDoc);
+
+            const quizType = quiz._id;
+
+            // Calculate percentage with proper limits
+            let percentage = 0;
+            if (quiz.maxMarks > 0) {
+                percentage = Math.min(100, Math.round((quiz.totalMarks / quiz.maxMarks) * 100 * 100) / 100);
+            } else {
+                // If no maxMarks, assume reasonable scoring (e.g., 10 points per question max)
+                const assumedMaxPerQuestion = 10;
+                const estimatedMaxMarks = quiz.questionCount * assumedMaxPerQuestion;
+                percentage = Math.min(100, Math.round((quiz.totalMarks / estimatedMaxMarks) * 100 * 100) / 100);
+                console.log(`${quizType}: No maxMarks found, using estimated max of ${estimatedMaxMarks} (${assumedMaxPerQuestion} per question)`);
+            }
+
+            result[quizType] = {
+                totalMarks: quiz.totalMarks,
+                maxMarks: quiz.maxMarks || quiz.questionCount * 10, // Show estimated maxMarks
+                questionCount: quiz.questionCount,
+                percentage: percentage
+            };
+
+            console.log(`${quizType}: totalMarks=${quiz.totalMarks}, maxMarks=${quiz.maxMarks}, questionCount=${quiz.questionCount}, percentage=${percentage}`);
+        });
 
         console.log(`Quiz totals retrieved for user ${user.userId}:`, result);
         res.status(200).json({
