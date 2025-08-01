@@ -1,46 +1,69 @@
-// Controller
 const ReadWriteQuiz = require('../schemas/ReadAndWriteSchema');
 
-// Get all read-write quiz questions
-exports.getQuizQuestions = async (req, res) => {
+exports.getAllReadWriteQuizzes = async (req, res) => {
     try {
-        const quiz = await ReadWriteQuiz.find({ quizName: 'READWRITE' });
-        if (!quiz) {
-            return res.status(404).json({ message: 'Read Write quiz not found' });
-        }
-        res.json(quiz);
+        const quizzes = await ReadWriteQuiz.find();
+        res.status(200).json(quizzes);
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({error: 'Failed to fetch quizzes'});
     }
 };
 
-exports.saveQuizQuestions = async (req, res) => {
+exports.saveReadWriteQuiz = async (req, res) => {
     try {
-        const { quizName, questions } = req.body;
+        const {
+            question,
+            answer1,
+            answer2,
+            answer3,
+            answer4,
+            correctAnswerOrder
+        } = req.body;
 
-        if (!quizName || !Array.isArray(questions)) {
-            return res.status(400).json({ message: 'Missing or invalid fields' });
+        if (!question || !correctAnswerOrder) {
+            return res.status(400).json({error: 'Question and correctAnswerOrder are required'});
         }
 
-        const validatedQuestions = questions.filter(q =>
-            q.id && q.scenario && q.steps?.length === 5 && q.correctOrder?.length === 5
-        );
-
-        if (validatedQuestions.length !== questions.length) {
-            return res.status(400).json({ message: 'Some questions are invalid' });
-        }
-
-        // Always create a new record
-        const quiz = new ReadWriteQuiz({
-            quizName,
-            questions: validatedQuestions,
-            createdAt: new Date() // Add timestamp if needed
+        const newQuiz = new ReadWriteQuiz({
+            question,
+            answer1Id: 1,
+            answer1,
+            answer2Id: 2,
+            answer2,
+            answer3Id: 3,
+            answer3,
+            answer4Id: 4,
+            answer4,
+            correctAnswerOrder
         });
-
-        await quiz.save();
-        res.status(201).json({ message: 'Read Write quiz saved', quiz });
+        await newQuiz.save();
+        res.status(201).json({message: 'Quiz saved successfully', quiz: newQuiz});
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({error: 'Failed to save quiz'});
     }
 };
 
+exports.checkReadWriteAnswer = async (req, res) => {
+    try {
+        const { quizId, selectedOrder } = req.body;
+
+        if (!quizId || !selectedOrder) {
+            return res.status(400).json({ error: 'quizId and selectedOrder are required' });
+        }
+
+        const quiz = await ReadWriteQuiz.findById(quizId);
+
+        if (!quiz) {
+            return res.status(404).json({ error: 'Quiz not found' });
+        }
+
+        const correctOrder = quiz.correctAnswerOrder?.trim();
+        const submittedOrder = selectedOrder?.trim();
+
+        const isCorrect = correctOrder === submittedOrder;
+
+        res.status(200).json({ correct: isCorrect });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to check answer' });
+    }
+};

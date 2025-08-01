@@ -32,7 +32,7 @@ const quizResultSchema = new mongoose.Schema({
     },
     percentage: {
         type: Number,
-        required: true
+        required: false
     },
     totalTime: {
         type: Number, // Time in seconds

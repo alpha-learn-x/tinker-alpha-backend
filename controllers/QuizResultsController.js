@@ -2,6 +2,7 @@ const QuizResult = require('../schemas/QuizResultsSchema');
 const User = require('../schemas/UserSchema');
 
 exports.saveQuizResults = async (req, res) => {
+    let percentage;
     try {
         const {
             user,
@@ -11,6 +12,7 @@ exports.saveQuizResults = async (req, res) => {
             totalMarks,
             totalTime,
             taskResults,
+            participatedQuestions,
             date,
             quizName
         } = req.body;
@@ -25,21 +27,21 @@ exports.saveQuizResults = async (req, res) => {
                 totalMarks: totalMarks !== undefined,
                 quizName: !!quizName
             });
-            return res.status(400).json({ message: 'All required fields must be provided' });
+            return res.status(400).json({message: 'All required fields must be provided'});
         }
 
         // Validate date
         const parsedDate = date ? new Date(date) : new Date();
         if (isNaN(parsedDate)) {
             console.log('Invalid date:', date);
-            return res.status(400).json({ message: 'Invalid date format' });
+            return res.status(400).json({message: 'Invalid date format'});
         }
 
         // Check if the user exists in the User collection using the provided user (_id)
         const existingUser = await User.findById(user);
         if (!existingUser) {
             console.log('User not found:', user);
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(404).json({message: 'User not found'});
         }
 
         // Validate taskResults if provided (for kinesthetic quiz)
@@ -57,7 +59,7 @@ exports.saveQuizResults = async (req, res) => {
             }
         }
 
-        // Create new quiz result
+        percentage = (totalMarks / (participatedQuestions )) * 100;
         const quizResultData = {
             quizName,
             user,
@@ -65,6 +67,8 @@ exports.saveQuizResults = async (req, res) => {
             username,
             email,
             totalMarks,
+            participatedQuestions,
+            percentage: percentage,
             date: parsedDate
         };
 
@@ -78,17 +82,7 @@ exports.saveQuizResults = async (req, res) => {
         }
 
         const quizResult = new QuizResult(quizResultData);
-
         const savedResult = await quizResult.save();
-        console.log('Quiz result saved successfully:', {
-            id: savedResult._id,
-            quizName: savedResult.quizName,
-            username: savedResult.username,
-            totalMarks: savedResult.totalMarks,
-            totalTime: savedResult.totalTime,
-            taskCount: savedResult.taskResults ? savedResult.taskResults.length : 0
-        });
-
         res.status(201).json({
             message: 'Quiz results saved successfully',
             data: savedResult
