@@ -12,7 +12,7 @@ const ReadWriteSchema = new mongoose.Schema({
     answer3: {type: String},
     answer4Id: {type: String},
     answer4: {type: String},
-    correctAnswerOrder: {type: String},
+    correctAnswerOrder: { type: [String], required: true },
     createdAt: {type: Date, default: Date.now}
 });
 

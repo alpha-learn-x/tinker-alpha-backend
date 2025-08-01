@@ -1,14 +1,15 @@
 const VisualQuiz = require('../schemas/VisualSchema');
-
 exports.getAllVisualQuizzes = async (req, res) => {
   try {
     const quizzes = await VisualQuiz.find();
     res.status(200).json(quizzes);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Failed to fetch quizzes' });
   }
 };
 
+// Save a new visual quiz
 exports.saveVisualQuiz = async (req, res) => {
   try {
     const {
@@ -17,33 +18,42 @@ exports.saveVisualQuiz = async (req, res) => {
       answer2,
       answer3,
       answer4,
-      correctAnswer
+      correctAnswer,
+      youtubeUrl,
+      pauseAt
     } = req.body;
 
-    if (!question || !correctAnswer) {
-      return res.status(400).json({ error: 'Question and correctAnswer are required' });
+    // Validate required fields
+    if (!question || !correctAnswer || !youtubeUrl || !pauseAt) {
+      return res.status(400).json({ error: 'Question, correctAnswer, youtubeUrl, and pauseAt are required' });
     }
 
+    // Create a new quiz entry
     const newQuiz = new VisualQuiz({
       question,
       answer1,
       answer2,
       answer3,
       answer4,
-      correctAnswer
+      correctAnswer,
+      youtubeUrl,
+      pauseAt
     });
 
     await newQuiz.save();
     res.status(201).json({ message: 'Quiz saved successfully', quiz: newQuiz });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Failed to save quiz' });
   }
 };
 
+// Check if the selected answer is correct
 exports.checkVisualAnswer = async (req, res) => {
   try {
     const { quizId, selectedAnswer } = req.body;
 
+    // Validate required fields
     if (!quizId || !selectedAnswer) {
       return res.status(400).json({ error: 'quizId and selectedAnswer are required' });
     }
@@ -58,6 +68,7 @@ exports.checkVisualAnswer = async (req, res) => {
 
     res.status(200).json({ correct: isCorrect });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Failed to check answer' });
   }
 };

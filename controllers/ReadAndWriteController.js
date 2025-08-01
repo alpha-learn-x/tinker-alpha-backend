@@ -26,16 +26,17 @@ exports.saveReadWriteQuiz = async (req, res) => {
 
         const newQuiz = new ReadWriteQuiz({
             question,
-            answer1Id: 1,
+            answer1Id: '1',
             answer1,
-            answer2Id: 2,
+            answer2Id: '2',
             answer2,
-            answer3Id: 3,
+            answer3Id: '3',
             answer3,
-            answer4Id: 4,
+            answer4Id: '4',
             answer4,
             correctAnswerOrder
         });
+
         await newQuiz.save();
         res.status(201).json({message: 'Quiz saved successfully', quiz: newQuiz});
     } catch (error) {
@@ -47,8 +48,8 @@ exports.checkReadWriteAnswer = async (req, res) => {
     try {
         const { quizId, selectedOrder } = req.body;
 
-        if (!quizId || !selectedOrder) {
-            return res.status(400).json({ error: 'quizId and selectedOrder are required' });
+        if (!quizId || !selectedOrder || !Array.isArray(selectedOrder)) {
+            return res.status(400).json({ error: 'quizId and selectedOrder (as array) are required' });
         }
 
         const quiz = await ReadWriteQuiz.findById(quizId);
@@ -57,10 +58,12 @@ exports.checkReadWriteAnswer = async (req, res) => {
             return res.status(404).json({ error: 'Quiz not found' });
         }
 
-        const correctOrder = quiz.correctAnswerOrder?.trim();
-        const submittedOrder = selectedOrder?.trim();
+        const correctOrder = quiz.correctAnswerOrder;
+        if (selectedOrder.length !== correctOrder.length) {
+            return res.status(200).json({ correct: false }); // Length mismatch
+        }
 
-        const isCorrect = correctOrder === submittedOrder;
+        const isCorrect = JSON.stringify(correctOrder) === JSON.stringify(selectedOrder);
 
         res.status(200).json({ correct: isCorrect });
     } catch (error) {
