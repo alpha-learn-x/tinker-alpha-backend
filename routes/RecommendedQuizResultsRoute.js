@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const quizResultController = require('../controllers/QuizResultsController');
+const quizResultController = require('../controllers/RecommendedQuizResultsController');
 const authMiddleware = require('../utill/authMiddleware');
 
 router.get('/user-quiz-totals', authMiddleware, quizResultController.getLoggedInUserQuizTotals);

@@ -30,7 +30,7 @@ const AuditorySchema = new mongoose.Schema({
   }],
   audioUrl: {
     type: String,
-    required: false // Optional, as the audio is referenced in the frontend
+    required: false
   },
   createdAt: {
     type: Date,

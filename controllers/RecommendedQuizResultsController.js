@@ -1,4 +1,4 @@
-const QuizResult = require('../schemas/QuizResultsSchema');
+const QuizResult = require('../schemas/RecommendedQuizResultsSchema');
 const User = require('../schemas/UserSchema');
 
 exports.saveQuizResults = async (req, res) => {
@@ -269,7 +269,7 @@ exports.getQuizStats = async (req, res) => {
 exports.getStudentQuizTotals = async (req, res) => {
     try {
         // Define the quiz types to filter
-        const quizTypes = ['KINESTHETIC', 'AUDITORY', 'READWRITE', 'VISUAL'];
+        const quizTypes = ['RECKINESTHETIC', 'RECAUDITORY', 'RECREADWRITE', 'RECVISUAL'];
 
         // Fetch all students (non-teachers) from the User collection
         const students = await User.find({ role: { $ne: 'TEACHER' } }, '_id userId username').lean();
@@ -320,29 +320,29 @@ exports.getStudentQuizTotals = async (req, res) => {
                     username: '$_id.username',
                     KINESTHETIC: {
                         $cond: [
-                            { $in: ['KINESTHETIC', '$marks.k'] },
-                            { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'KINESTHETIC'] }] },
+                            { $in: ['RECKINESTHETIC', '$marks.k'] },
+                            { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'RECKINESTHETIC'] }] },
                             0
                         ]
                     },
                     AUDITORY: {
                         $cond: [
-                            { $in: ['AUDITORY', '$marks.k'] },
-                            { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'AUDITORY'] }] },
+                            { $in: ['RECAUDITORY', '$marks.k'] },
+                            { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'RECAUDITORY'] }] },
                             0
                         ]
                     },
                     READWRITE: {
                         $cond: [
-                            { $in: ['READWRITE', '$marks.k'] },
-                            { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'READWRITE'] }] },
+                            { $in: ['RECREADWRITE', '$marks.k'] },
+                            { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'RECREADWRITE'] }] },
                             0
                         ]
                     },
                     VISUAL: {
                         $cond: [
-                            { $in: ['VISUAL', '$marks.k'] },
-                            { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'VISUAL'] }] },
+                            { $in: ['RECVISUAL', '$marks.k'] },
+                            { $arrayElemAt: ['$marks.v', { $indexOfArray: ['$marks.k', 'RECVISUAL'] }] },
                             0
                         ]
                     },
