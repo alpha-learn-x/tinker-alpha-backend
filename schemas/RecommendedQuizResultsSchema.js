@@ -30,32 +30,14 @@ const quizResultSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    percentage: {
-        type: Number,
-        required: true
-    },
     totalTime: {
-        type: Number, // Time in seconds
-        required: false // Optional for backward compatibility
+        type: Number,
+        required: false
     },
-    taskResults: [{
-        taskId: {
-            type: Number,
-            required: false
-        },
-        timeTaken: {
-            type: Number, // Time in seconds for this specific task
-            required: false
-        },
-        marks: {
-            type: Number,
-            required: false
-        }
-    }],
     date: {
         type: Date,
         default: Date.now
     }
 });
 
-module.exports = mongoose.model('RecQuizResult', quizResultSchema);
+module.exports = mongoose.model('QuizResult', quizResultSchema);
