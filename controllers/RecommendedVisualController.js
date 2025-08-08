@@ -1,4 +1,4 @@
-const VisualQuiz = require('../schemas/VisualSchema');
+const VisualQuiz = require('../schemas/RecommendedVisualSchema');
 exports.getAllVisualQuizzes = async (req, res) => {
   try {
     const quizzes = await VisualQuiz.find();

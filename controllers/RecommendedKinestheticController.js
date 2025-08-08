@@ -1,4 +1,4 @@
-const KinestheticQuiz = require('../schemas/KinestheticSchema');
+const KinestheticQuiz = require('../schemas/RecommendedKinestheticSchema');
 
 exports.getAllKinestheticQuizzes = async (req, res) => {
     try {

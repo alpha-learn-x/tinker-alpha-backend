@@ -40,4 +40,4 @@ const quizResultSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('QuizResult', quizResultSchema);
+module.exports = mongoose.model('Rec_QuizResult', quizResultSchema);

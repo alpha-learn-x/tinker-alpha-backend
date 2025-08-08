@@ -7,11 +7,11 @@ const MatchItemSchema = new mongoose.Schema({
 });
 
 const KinestheticSchema = new mongoose.Schema({
-    quizName: { type: String, required: true, default: 'KINESTHETIC' },
+    quizName: { type: String, required: true, default: 'Rec_KINESTHETIC' },
     question: { type: String, required: true },
     matchItems: [MatchItemSchema],
     correctPairs: { type: Map, of: String },
     createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('KinestheticQuiz', KinestheticSchema);
+module.exports = mongoose.model('Rec_KinestheticQuiz', KinestheticSchema);

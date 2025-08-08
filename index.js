@@ -9,6 +9,7 @@ const DB_CONNECTION_STRING = process.env.DB_CONNECTION_STRING;
 const UserRoute = require('./routes/UserRoute');
 const ActivityRoute = require('./routes/ActivityRoute');
 const QuizResultRoutes = require('./routes/QuizRoutes');
+const RecQuizResultRoutes = require('./routes/RecommendedQuizResultsRoute');
 const VisualRoutes = require('./routes/VisualRoutes');
 const RecVisualRoutes = require('./routes/RecommendedVisualRoute');
 const AuditoryRoutes = require('./routes/AuditoryRoutes');
@@ -48,6 +49,7 @@ mongoose.connect(DB_CONNECTION_STRING)
 app.use('/api/v1/users', UserRoute);
 app.use('/api/v1/activities', ActivityRoute);
 app.use('/api/v1/quizzes', QuizResultRoutes);
+app.use('/api/v1/rec-quizzes', RecQuizResultRoutes);
 app.use('/api/v1/quizzes/visual', VisualRoutes);
 app.use('/api/v1/quizzes/rec-visual', RecVisualRoutes);
 app.use('/api/v1/quizzes/auditory', AuditoryRoutes);

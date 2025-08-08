@@ -1,4 +1,4 @@
-const AuditoryQuiz = require('../schemas/AuditorySchema');
+const AuditoryQuiz = require('../schemas/RecommendedAuditorySchema');
 
 exports.getAllAuditoryQuizzes = async (req, res) => {
   try {

@@ -1,4 +1,4 @@
-const QuizResult = require('../schemas/QuizResultsSchema');
+const QuizResult = require('../schemas/RecommendedQuizResultsSchema');
 
 // Save a new quiz result
 exports.saveQuizResult = async (req, res) => {

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const VisualSchema = new mongoose.Schema({
-  quizName: { type: String, required: true, default: 'VISUAL' },
+  quizName: { type: String, required: true, default: 'Rec_VISUAL' },
   question: { type: String, required: true },
   answer1: { type: String, required: true },
   answer2: { type: String, required: true },
@@ -13,4 +13,4 @@ const VisualSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('VisualQuiz', VisualSchema);
+module.exports = mongoose.model('Rec_VisualQuiz', VisualSchema);

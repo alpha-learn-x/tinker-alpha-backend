@@ -2,7 +2,7 @@
 const mongoose = require('mongoose');
 
 const ReadWriteSchema = new mongoose.Schema({
-    quizName: {type: String, required: true, default: 'READWRITE'},
+    quizName: {type: String, required: true, default: 'Rec_READWRITE'},
     question: {type: String, required: true},
     answer1Id: {type: String},
     answer1: {type: String},
@@ -16,6 +16,6 @@ const ReadWriteSchema = new mongoose.Schema({
     createdAt: {type: Date, default: Date.now}
 });
 
-module.exports = mongoose.model('ReadWriteQuiz', ReadWriteSchema);
+module.exports = mongoose.model('Rec_ReadWriteQuiz', ReadWriteSchema);
 
 

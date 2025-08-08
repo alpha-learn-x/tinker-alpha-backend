@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const AuditorySchema = new mongoose.Schema({
-  quizName: {type: String, required: true, default: 'AUDITORY'},
+  quizName: {type: String, required: true, default: 'Rec_AUDITORY'},
   question: {type: String, required: true},
   answer1: {type: String},
   answer2: {type: String},
@@ -12,4 +12,4 @@ const AuditorySchema = new mongoose.Schema({
   createdAt: {type: Date, default: Date.now}
 });
 
-module.exports = mongoose.model('AuditoryQuiz', AuditorySchema);
+module.exports = mongoose.model('Rec_AuditoryQuiz', AuditorySchema);

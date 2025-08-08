@@ -1,4 +1,4 @@
-const ReadWriteQuiz = require('../schemas/ReadAndWriteSchema');
+const ReadWriteQuiz = require('../schemas/RecommendedReadAndWriteSchema');
 
 exports.getAllReadWriteQuizzes = async (req, res) => {
     try {
